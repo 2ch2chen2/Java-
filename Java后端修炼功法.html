@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JAVA通天录</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #ff6b6b;
+            --primary-light: #ff8787;
+            --secondary: #7c3aed;
+            --success: #10b981;
+            --bg: rgb(255, 255, 255);
+            --card-bg: #ffffff;
+            --border: rgba(234, 184, 184, 0.4);
+            --text-main: #2d3748;
+            --text-sub: #718096;
+            --gold-main: #ffd700;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', Roboto, sans-serif;
+            background: linear-gradient(135deg, #fef5f7 0%, #f0e8ff 100%);
+            color: var(--text-main);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* 背景装饰 */
+        body::before { content: '少壮不努力'; position: fixed; left: 10%; top: 50%; transform: translateY(-50%); writing-mode: vertical-rl; text-orientation: upright; font-size: 50px; color: rgb(14, 12, 12); pointer-events: none; z-index: 0; font-weight: 900; font-family: 'Xingkai SC', '行楷', '华文行楷', cursive; letter-spacing: 22px; }
+        body::after { content: '老大徒伤悲'; position: fixed; right: 10%; top: 50%; transform: translateY(-50%); writing-mode: vertical-rl; text-orientation: upright; font-size: 50px; color: rgb(14, 12, 12); pointer-events: none; z-index: 0; font-weight: 900; font-family: 'Xingkai SC', '行楷', '华文行楷', cursive; letter-spacing: 22px; }
+
+        .container { max-width: 900px; margin: 0 auto; position: relative; z-index: 1; }
+
+        /* ================== 卷轴区域 ================== */
+        .edict-wrapper { display: flex; align-items: center; justify-content: center; padding: 40px 0; margin-bottom: 20px; position: relative; z-index: 5; filter: drop-shadow(0 20px 20px rgba(0,0,0,0.2)); }
+        .rod { width: 32px; height: 420px; background-image: radial-gradient(circle at 50% 12px, #d6b36a 0%, #8b5a2b 55%, #3b2412 70%), radial-gradient(circle at 50% calc(100% - 12px), #d6b36a 0%, #8b5a2b 55%, #3b2412 70%), linear-gradient(to right, #3b2412, #a36a34 30%, #d6b36a 50%, #a36a34 70%, #3b2412); background-repeat: no-repeat; background-size: 100% 24px, 100% 24px, 100% 100%; border-radius: 4px; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); z-index: 10; position: relative; flex-shrink: 0; }
+        .rod.left { margin-right: -8px; border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
+        .rod.right { margin-left: -8px; border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
+        .edict-scroll-view { height: 350px; width: 0; overflow: hidden; transition: width 1.5s cubic-bezier(0.25, 1, 0.5, 1); background: radial-gradient(circle at 30% 40%, rgba(180,140,60,.15), transparent 45%), radial-gradient(circle at 70% 60%, rgba(180,140,60,.12), transparent 45%), linear-gradient(to bottom, #fdf7db, #f3e2ad, #fdf7db); border-top: 3px solid #c8a24a; border-bottom: 3px solid #c8a24a; box-shadow: inset 0 0 50px rgba(180,140,60,0.3); position: relative; }
+        .edict-wrapper.open .edict-scroll-view { width: 800px; }
+        .cloud-watermark { position: absolute; width: 120px; height: 50px; background: rgba(255, 255, 255, 0.4); border-radius: 50px; z-index: 0; pointer-events: none; box-shadow: 0 0 15px rgba(255, 215, 0, 0.2); }
+        .cloud-watermark::after, .cloud-watermark::before { content: ''; position: absolute; background: inherit; border-radius: 50%; }
+        .cloud-watermark::before { width: 40px; height: 40px; top: -20px; left: 20px; }
+        .cloud-watermark::after { width: 55px; height: 55px; top: -30px; left: 50px; }
+        .cloud-tl { top: 40px; left: 20px; transform: scale(0.8); opacity: 0.6; }
+        .cloud-tr { top: 40px; right: 20px; transform: scaleX(-1) scale(0.8); opacity: 0.6; }
+        .cloud-bl { bottom: 30px; left: 30px; transform: scale(1.1); opacity: 0.8; }
+        .cloud-br { bottom: 30px; right: 30px; transform: scaleX(-1) scale(1.1); opacity: 0.8; }
+        .edict-wrapper.open .cloud-watermark { animation: cloud-pulse 6s ease-in-out infinite alternate; }
+        @keyframes cloud-pulse { 0% { transform: translateY(0) scale(var(--s, 1)) rotate(0deg); opacity: 0.6; } 100% { transform: translateY(-5px) scale(var(--s, 1.05)) rotate(1deg); opacity: 0.8; } }
+        .edict-content { width: 800px; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; font-family: 'STKaiti', 'KaiTi', '华文楷体', serif; color: #2f220f; white-space: nowrap; opacity: 0; transition: opacity 0.8s ease 0.5s; position: relative; z-index: 2; }
+        .edict-wrapper.open .edict-content { opacity: 1; }
+        .edict-content h1 { font-size: 3rem; letter-spacing: 10px; margin-bottom: 20px; text-shadow: 0 2px 0 #fff6d0, 0 4px 8px rgba(0,0,0,.2); font-weight: 900; }
+        .edict-content p { font-size: 1.2rem; line-height: 2; font-weight: 600; }
+        .seal-container { position: absolute; bottom: 30px; right: 80px; width: 120px; height: 120px; pointer-events: none; z-index: 10; }
+        .seal-mark { width: 100%; height: 100%; border: 5px solid #d80000; color: #d80000; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 48px; font-weight: 900; writing-mode: vertical-rl; text-orientation: upright; font-family: 'Xingkai SC', '行楷', '华文行楷', cursive; background: rgba(216, 0, 0, 0.03); transform: rotate(-8deg); opacity: 0; }
+        .edict-wrapper.open .seal-mark { animation: mark-appear 0.1s forwards; animation-delay: 2.4s; }
+        @keyframes mark-appear { from { opacity: 0; transform: scale(1.5) rotate(-8deg); } to { opacity: 0.85; transform: scale(1) rotate(-8deg); } }
+        .gold-seal { position: absolute; top: -600px; left: 0; width: 120px; height: 120px; background: linear-gradient(135deg, #ffd700 0%, #fdb931 50%, #b8860b 100%); border: 1px solid #fff5c3; box-shadow: 0 25px 30px rgba(0,0,0,0.4), inset 0 0 20px rgba(255,255,255,0.4), 0 8px 0 #8a6e35; border-radius: 6px; display: flex; align-items: center; justify-content: center; z-index: 20; opacity: 0; }
+        .gold-seal::before { content: '👑'; font-size: 130px; position: absolute; top: -35px; filter: drop-shadow(0 2px 0 #8a6e35) contrast(1.2); text-shadow: 0 0 0 #b8860b; color: transparent; }
+        .edict-wrapper.open .gold-seal { animation: seal-drop 0.4s cubic-bezier(0.5, 0.05, 0.9, 0.5) forwards, seal-vanish 0.6s ease-out forwards; animation-delay: 2.0s, 3.0s; }
+        @keyframes seal-drop { 0% { opacity: 1; transform: translateY(0) scale(1.1); } 100% { opacity: 1; transform: translateY(600px) scale(1); } }
+        @keyframes seal-vanish { 0% { opacity: 1; transform: translateY(600px); } 100% { opacity: 0; transform: translateY(550px); } }
+
+        /* ============ 个人道籍面板 ============ */
+        .dao-panel { background: white; border-radius: 20px; padding: 30px; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 2px solid rgba(124, 58, 237, 0.1); position: relative; overflow: hidden; }
+        .dao-panel::before { content: '天道酬勤'; position: absolute; right: 65px; top: -30px; font-size: 130px; color: rgba(250, 233, 233, 0.4); font-family: 'KaiTi', serif; pointer-events: none; }
+        .dao-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 15px; }
+        .dao-title { font-size: 20px; font-weight: bold; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+        .progress-text { font-size: 32px; font-weight: 900; color: var(--secondary); line-height: 1; }
+        .progress-track { background: #f1f5f9; height: 12px; border-radius: 6px; overflow: hidden; margin-bottom: 25px; }
+        .progress-fill { background: linear-gradient(90deg, #ff6b6b 0%, #7c3aed 100%); height: 100%; width: 0%; transition: width 0.8s ease; border-radius: 6px; }
+        .suggestion-box { background: linear-gradient(135deg, #fef5f7 0%, #fff 100%); border-left: 4px solid var(--primary); padding: 15px 20px; border-radius: 8px; color: var(--text-sub); font-size: 15px; display: flex; gap: 12px; align-items: flex-start; }
+        .suggestion-icon { font-size: 20px; margin-top: -2px; }
+        .suggestion-text { line-height: 1.6; }
+
+        /* ============ 笔记系统 ============ */
+        .notes-panel { background: white; border-radius: 20px; padding: 25px; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 2px solid rgba(234, 184, 184, 0.2); }
+        .notes-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .notes-title { font-size: 20px; font-weight: bold; color: var(--text-main); }
+        .add-note-btn { padding: 8px 20px; background: var(--primary); color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 14px; font-weight: bold; transition: all 0.3s; }
+        .add-note-btn:hover { transform: scale(1.05); box-shadow: 0 5px 15px rgba(255,107,107,0.3); }
+        .notes-list { max-height: 300px; overflow-y: auto; padding-right: 5px; }
+        .note-item { background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 10px; border-left: 4px solid var(--primary); transition: all 0.2s; }
+        .note-item:hover { background: #fff5f5; }
+        .note-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .note-topic { font-weight: bold; color: var(--text-main); font-size: 15px; }
+        .note-date { font-size: 12px; color: var(--text-sub); }
+        .note-content { color: var(--text-sub); line-height: 1.6; font-size: 14px; white-space: pre-wrap; }
+        .note-delete { color: #ef4444; cursor: pointer; font-size: 12px; margin-top: 8px; display: inline-block; padding: 2px 8px; border-radius: 4px; }
+        .note-delete:hover { background: rgba(239, 68, 68, 0.1); }
+
+        /* ============ 高级任务卡片样式 ============ */
+        .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            perspective: 1200px;
+        }
+
+        .task-checkbox { display: none; }
+
+        .task-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px 24px;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow:
+                    0 4px 6px -1px rgba(234, 184, 184, 0.4),
+                    0 2px 4px -1px rgba(234, 184, 184, 0.4),
+                    inset 0 0 0 1px rgba(255,255,255,0.5);
+
+            /* 初始状态：3D倾斜 */
+            opacity: 0;
+            transform-style: preserve-3d;
+            transform: rotateX(-15deg) translateY(50px) scale(0.9);
+
+            /* 物理过渡效果 */
+            transition:
+                    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                    box-shadow 0.2s ease,
+                    border-color 0.2s ease,
+                    background-color 0.2s ease;
+
+            /* 入场动画 */
+            animation: card3DEnter 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        @keyframes card3DEnter {
+            to {
+                opacity: 1;
+                transform: rotateX(0) translateY(0) scale(1);
+            }
+        }
+
+        /* 悬停 */
+        .task-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow:
+                    0 20px 25px -5px rgba(124, 58, 237, 0.15),
+                    0 10px 10px -5px rgba(124, 58, 237, 0.1);
+            border-color: rgba(124, 58, 237, 0.4);
+            z-index: 10;
+        }
+
+        /* 侧边条 */
+        .task-card::after {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+            background: rgba(250, 166, 166, 0.4); transition: all 0.3s ease;
+        }
+        .task-card:hover::after { background: var(--secondary); width: 6px; box-shadow: 0 0 10px var(--secondary); }
+
+        /* 选中状态 */
+        .task-checkbox:checked + .task-card {
+            background: #f8fafc; transform: scale(0.98); opacity: 0.8;
+            border-color: transparent; box-shadow: none;
+        }
+
+        /* 流光扫过特效 */
+        .task-checkbox:checked + .task-card::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), rgba(76, 255, 148, 0.4), transparent);
+            transform: skewX(-15deg); animation: shine-pass 0.6s ease-out; pointer-events: none; z-index: 5;
+        }
+        @keyframes shine-pass { 0% { left: -100%; } 100% { left: 200%; } }
+
+        .task-checkbox:checked + .task-card::after { background: var(--success); box-shadow: 0 0 8px var(--success); width: 6px; }
+
+        .task-checkbox:checked + .task-card .task-title { text-decoration: line-through; color: #94a3b8; transition: all 0.3s; }
+        .task-checkbox:checked + .task-card .task-desc { opacity: 0.5; }
+
+        /* 完成图标 */
+        .check-icon {
+            position: absolute; right: 20px; top: 20px; width: 30px; height: 30px;
+            border-radius: 50%; background: var(--success); color: white;
+            display: flex; align-items: center; justify-content: center;
+            transform: scale(0) rotate(-180deg); opacity: 0;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4); z-index: 10;
+        }
+        .task-checkbox:checked + .task-card .check-icon { transform: scale(1) rotate(0deg); opacity: 1; }
+
+        .task-title { font-size: 1.15rem; font-weight: 700; color: var(--text-main); margin-left: 10px; transition: color 0.3s; position: relative; z-index: 2; }
+        .task-desc { font-size: 0.92rem; color: var(--text-sub); margin: 2px 0 0 10px; line-height: 1.5; position: relative; z-index: 2; }
+        .task-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; margin-left: 10px; position: relative; z-index: 2; }
+
+        .task-btn {
+            padding: 5px 12px; border: none; border-radius: 6px; cursor: pointer;
+            font-size: 0.8rem; font-weight: 600; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
+            background: rgba(124, 58, 237, 0.08); color: var(--secondary);
+            transition: all 0.2s; border: 1px solid transparent;
+        }
+        .task-btn.bilibili { background: rgba(0, 161, 214, 0.08); color: #00a1d6; }
+        .task-btn:hover { transform: translateY(-2px); box-shadow: 0 3px 8px rgba(0,0,0,0.08); background: white; border-color: currentColor; }
+        .task-btn.bilibili:hover { color: #00a1d6; }
+        .task-btn.resource:hover { color: var(--secondary); }
+
+        /* ============ 模态框 ============ */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        .modal.active { display: flex; animation: fadeIn 0.3s; }
+        .modal-content { background: white; border-radius: 20px; padding: 30px; max-width: 500px; width: 90%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); animation: zoomIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .modal-title { font-size: 20px; font-weight: bold; margin-bottom: 20px; text-align: center; }
+        .modal-input, .modal-textarea { width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 10px; font-size: 15px; margin-bottom: 15px; font-family: inherit; outline: none; transition: border-color 0.3s; }
+        .modal-input:focus, .modal-textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1); }
+        .modal-textarea { min-height: 120px; resize: vertical; }
+        .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; }
+        .modal-btn { padding: 10px 25px; border: none; border-radius: 10px; cursor: pointer; font-size: 15px; font-weight: bold; transition: all 0.3s; }
+        .modal-btn.confirm { background: var(--primary); color: white; box-shadow: 0 4px 6px -1px rgba(255, 107, 107, 0.3); }
+        .modal-btn.confirm:hover { transform: translateY(-2px); box-shadow: 0 6px 12px -2px rgba(255, 107, 107, 0.4); }
+        .modal-btn.cancel { background: #f3f4f6; color: var(--text-main); }
+        .modal-btn.cancel:hover { background: #e5e7eb; }
+        footer { text-align: center; padding: 40px 0; }
+        .footer-btn { background: none; border: 2px solid var(--text-sub); color: var(--text-sub); padding: 8px 20px; border-radius: 20px; cursor: pointer; font-size: 14px; transition: 0.3s; opacity: 0.7; }
+        .footer-btn:hover { border-color: #ef4444; color: #ef4444; opacity: 1; transform: translateY(-2px); }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes zoomIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        @media (max-width: 768px) {
+            .edict-wrapper.open .edict-scroll-view { width: 100%; }
+            .edict-content { width: 100%; white-space: normal; padding: 0 10px; }
+            .seal-container { width: 90px; height: 90px; bottom: 10px; right: 10px; }
+            .cloud-tl, .cloud-tr { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="edict-wrapper" id="edict">
+        <div class="rod left"></div>
+        <div class="edict-scroll-view">
+            <div class="cloud-watermark cloud-tl" style="--s: 1;"></div>
+            <div class="cloud-watermark cloud-tr" style="--s: 1;"></div>
+            <div class="cloud-watermark cloud-bl" style="--s: 1.2;"></div>
+            <div class="cloud-watermark cloud-br" style="--s: 1.2;"></div>
+
+            <div class="edict-content">
+                <h1>☕ 爪哇通天录 ☕</h1>
+                <p>奉天承运，皇帝诏曰</p>
+                <p>即日起，修此圣典者，必成正果</p>
+                <p style="margin-top:10px; font-size: 0.9rem; opacity: 0.8;">🚀 演武堂、三更草堂(视频)，藏经阁(文档) 🚀</p>
+                <p style="font-size: 0.9rem; opacity: 0.8;">💡 点击复选框标记完成 · 点击按钮查看相关功法 💡</p>
+
+                <div class="seal-container">
+                    <div class="seal-mark">爪哇</div>
+                    <div class="gold-seal"></div>
+                </div>
+            </div>
+        </div>
+        <div class="rod right"></div>
+    </div>
+
+    <div class="dao-panel">
+        <div class="dao-header">
+            <div class="dao-title">🧘 修炼进度</div>
+            <div class="progress-text"><span id="progress-percent">0</span>%</div>
+        </div>
+
+        <div class="progress-track">
+            <div class="progress-fill" id="progress-bar"></div>
+        </div>
+
+        <div class="suggestion-box">
+            <div class="suggestion-icon">💡</div>
+            <div class="suggestion-text" id="suggestionContent">
+                正在推演天机...
+            </div>
+        </div>
+    </div>
+
+    <div class="notes-panel">
+        <div class="notes-header">
+            <div class="notes-title">📝 道友手札</div>
+            <button class="add-note-btn" onclick="openNoteModal()">+ 记录感悟</button>
+        </div>
+        <div class="notes-list" id="notesList">
+        </div>
+    </div>
+
+    <div class="task-list" id="task-list"></div>
+
+    <footer>
+        <button class="footer-btn" onclick="resetProgress()">🗑️ 散功重修 (清除进度)</button>
+    </footer>
+</div>
+
+<div class="modal" id="noteModal">
+    <div class="modal-content">
+        <div class="modal-title">✍️ 记录修仙感悟</div>
+        <input type="text" class="modal-input" id="noteTopic" placeholder="章节主题（如：JavaSE、Spring...）">
+        <textarea class="modal-textarea" id="noteContent" placeholder="在此刻下你的心法口诀、踩坑记录或顿悟瞬间..."></textarea>
+        <div class="modal-buttons">
+            <button class="modal-btn cancel" onclick="closeNoteModal()">取消</button>
+            <button class="modal-btn confirm" onclick="saveNote()">保存手札</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const studyPlan = [
+        { id: 'javase', title: 'JavaSE', desc: '气走字节，脉通对象；万法之始，唯此筑基', resources: [{ name: '🎬 演武堂', url: 'https://www.bilibili.com/video/BV163GGz2E8c/' }, { name: '📖 藏经阁', url: 'https://www.itbaima.cn/zh-CN/document/8egfulw98v3h680j' },{ name: '⭐ 函数式编程', url: 'https://www.bilibili.com/video/BV1Gh41187uR/' },{ name: '📚 Java关键字总结', url: 'https://www.itbaima.cn/zh-CN/document/tsrkqvb6zpmtwh0n'}] },
+        { id: 'javase-new', title: 'JavaSE新特性', desc: '一行代千语，流转自无形；空指不伤身，函数即大道', resources: [{ name: '🎬 演武堂', url: 'https://www.bilibili.com/video/BV1tU4y1y7Fg/' }, { name: '📖 藏经阁', url: 'https://www.itbaima.cn/zh-CN/document/9890i8ofuadpwy2b' },{ name: '📚 Java新特性大纲', url: 'https://www.codefather.cn/course/1803988290715377665/section/1962801453192523778' },{name: '🔱 IDEA快捷键大全', url: 'https://v.douyin.com/dkv_WyaLNuI/ 04/30 a@A.tR IiP:/ '}] },
+        { id: 'mysql', title: 'MySQL', desc: '万法生息于此，数据如气，存取如吐纳，稳若磐石，快似惊鸿', resources: [{ name: '🎬 演武堂', url: 'https://www.bilibili.com/video/BV19d4y147Df/?t=1.91465&bvid=BV19d4y147Df' },{ name: '⭐ MySQL进阶', url: 'https://www.bilibili.com/video/BV1Kr4y1i7ru/' }] },
+        { id: 'javaweb', title: 'JavaWeb', desc: '请求如鹰掠，响应化爪痕；会话藏真意，Cookie 藏密符', resources: [{ name: '🎬 演武堂', url: 'https://www.bilibili.com/video/BV1CL4y1i7qR/' }, { name: '📖 藏经阁', url: 'https://www.itbaima.cn/zh-CN/document/ggwwj09j2vkfftvd' },{ name: '🎬 新版本更新ing', url: 'https://www.bilibili.com/video/BV1kS421X7rq/' },{ name: '📖 新版本更新ing', url: 'https://www.itbaima.cn/zh-CN/document/ek20yvb6huhxizx7' }] },
+        { id: 'spring', title: 'Spring', desc: 'Bean自天成，切面如影随；万物生于无，框架定乾坤', resources: [{ name: '🎬 演武堂', url: 'https://www.bilibili.com/video/BV1Kv4y1x7is/' }, { name: '📖 藏经阁', url: 'https://www.itbaima.cn/zh-CN/document/h7sjo5oy0l03607e' },{ name: '🎬 三更草堂', url: 'https://www.bilibili.com/video/BV1G54y1V7VG/' }] },
+        { id: 'springmvc', title: 'SpringMVC', desc: 'URL为径，Controller为眼；视图展双翼，数据落掌间', resources: [{ name: '🎬 演武堂', url: 'https://www.bilibili.com/video/BV1Lh4y1M7kx/' }, { name: '📖 藏经阁', url: 'https://www.itbaima.cn/zh-CN/document/eve8gq72qmdb46sg' },{ name: '🎬 三更草堂', url: 'https://www.bilibili.com/video/BV1AK4y1o74Y/' }] },
+        { id: 'springsecurity', title: 'SpringSecurity', desc: '认证如铁壁，授权似金锁；JWT化玉符，CSRF无隙入', resources: [{ name: '🎬 演武堂', url: 'https://www.bilibili.com/video/BV1fV411M7aS/' }, { name: '📖 藏经阁', url: 'https://www.itbaima.cn/zh-CN/document/63v73g0zh1qlr6fk' },{ name: '🎬 三更草堂', url: 'https://www.bilibili.com/video/BV1mm4y1X7Hc/' }] },
+        { id: 'springboot', title: 'SpringBoot', desc: '注解定山河，内嵌 Tomcat；启动即登云，配置化无形', resources: [{ name: '🎬 演武堂', url: 'https://www.bilibili.com/video/BV1xu4y1m7UP/' }, { name: '📖 藏经阁', url: 'https://www.itbaima.cn/zh-CN/document/0k66v5r6slsfuog4' }, { name: '🎬 三更草堂', url: 'https://www.bilibili.com/video/BV1T54y1n7PB/' }] },
+        { id: 'redis', title: 'Redis', desc: '缓存如明镜，击穿亦不惊；集群布星斗，持久守本心', resources: [{ name: '🎬 演武堂', url: 'https://www.bilibili.com/video/BV1vR4y1o7Z2/' }, { name: '📖 藏经阁', url: 'https://www.itbaima.cn/zh-CN/document/jjlolj5igvttvyhv' },{ name: '⭐ Redis进阶', url: 'https://www.bilibili.com/video/BV1cr4y1671t/' }] },
+        { id: 'linux', title: 'Linux', desc: '命令化剑气，权限定生死；日志藏天机，Shell起风云', resources: [{ name: '🎬 演武堂', url: 'https://www.bilibili.com/video/BV1a3411f7nh/?t=2.05375&bvid=BV1a3411f7nh' }, { name: '📖 藏经阁', url: 'https://www.itbaima.cn/zh-CN/document/le91fqhu4dqui1k4' },{ name: '🚀 AcWing', url: 'https://www.acwing.com/activity/content/introduction/57/' }] },
+        { id: 'git', title: 'Git', desc: '分支如分身，合并似归元；回溯可逆命，协作共修真', resources: [{ name: '🎬 演武堂', url: 'https://www.bilibili.com/video/BV1ce4y1W7YB/?t=2.647116&bvid=BV1ce4y1W7YB' }, { name: '📖 GitHub', url: 'https://www.itbaima.cn/zh-CN/document/emnmd8nzfdb3hr50' },{name:'🚽 GitLab',url: 'https://www.bilibili.com/video/BV1QeBfBmEbS/'},{ name: '🚀 AcWing', url: 'https://www.acwing.com/file_system/file/content/whole/index/content/2932078/' }] },
+        { id: 'springcloud', title: 'SpringCloud', desc: '服务如星辰，注册即归位；熔断守天枢，网关镇南门', resources: [{ name: '🎬 演武堂', url: 'https://www.bilibili.com/video/BV1AL4y1j7RY/' }, { name: '📖 藏经阁', url: 'https://www.itbaima.cn/zh-CN/document/oejzo0l77zeb6a7e' },{ name: '⭐ RocketMQ ', url: 'https://www.bilibili.com/video/BV1AU4y157LX/' }] },
+        { id: 'docker', title: 'Docker', desc: '一镜封万象，容器纳须弥；镜像传四海，部署如呼吸', resources: [{ name: '🎬 演武堂', url: 'https://www.bilibili.com/video/BV1r34y1p7j9/' }, { name: '📖 藏经阁', url: 'https://www.itbaima.cn/zh-CN/document/zj9uvg0sp3b0sok8' },{ name: '🎬 三更草堂', url: 'https://www.bilibili.com/video/BV1FC4y157gK/' }] },
+        { id: 'interview-ya', title: 'AI智能应用开发', desc: '莫惧灵智夺道，实乃助你超脱琐务；真正的修士，从不让双手困住神魂。', resources: [{ name: '🌕 LangChain4j', url: 'https://www.bilibili.com/video/BV1sDMqzpEQ3/' },{ name: '🌕 SpringAI', url: 'https://www.bilibili.com/video/BV1MtZnYtEB3/' },{name:'🌕 Python',url: 'https://www.bilibili.com/video/BV1sHU9BmEne/?cid=34278674060&p=1'},{name:'🌕 PythonWeb',url: 'https://www.bilibili.com/video/BV1zV2QBtE39?cid=34613234830'},{name: '🌕 Python+AI大模型',url: 'https://www.bilibili.com/video/BV1h1VbzHER2?cid=33131464759'},{name: '🌕 多模态AIGC图像生成',url: 'https://www.bilibili.com/video/BV1sMk6BtE3f?cid=33912587323'}] },
+        { id: 'interview-frontend', title: '前端技术', desc: '莫道前端虚浮，实乃大道显化之门；不修界面神通，怎配称全栈真人？', resources: [{ name: '🌕 HTML', url: 'https://www.bilibili.com/video/BV1BrBiYNEWg/' },{ name: '🌕 CSS', url: 'https://www.bilibili.com/video/BV1sQeEzFEKi/' },{ name: '🌕 JavaScript', url: 'https://www.bilibili.com/video/BV1xq6gBgESU/' },{ name: '🌕 Node.js', url: 'https://www.bilibili.com/video/BV1a34y167AZ/' },{ name: '🌕 Vue', url: 'https://www.bilibili.com/video/BV1HV4y1a7n4/' },{ name: '🌕 微信小程序', url: 'https://www.bilibili.com/video/BV1834y1676P/' },{ name: '🌕 TypeScript', url: 'https://www.bilibili.com/video/BV14Z4y1u7pi/' },{ name: '🌕 React', url: 'https://www.bilibili.com/video/BV1ZB4y1Z7o8/' },{ name: '🌕 大佬更新ing', url: 'https://space.bilibili.com/37737161/lists/4495118?type=series' },] },
+        { id: 'project-1', title: '项目：云笔阁', desc: '一个属于自己的网上日记本。你可以写技术笔记、生活感悟，还能上传图片、设置标签分类。别人通过浏览器就能看到你的文章，就像在自家小院里开了一家“数字茶馆”。', resources: [{ name: '🎬 演武堂', url: 'https://www.bilibili.com/video/BV1hq4y1F7zk/' }] },
+        { id: 'project-2', title: '项目：醉仙楼', desc: '一个模拟美团/饿了么的外卖系统。用户可以浏览菜单、下单、支付；商家能接单、处理订单；后台还能管理菜品和骑手。适合练习前后端交互、订单流程设计。', resources: [{ name: '🎬 演武堂', url: 'https://www.bilibili.com/video/BV1TP411v7v6/' }] },
+        { id: 'project-3', title: '项目：万法炉', desc: '深入业务场景的企业级硬项目，基于 React+ Spring Boot+Picocli +对象存储的代码生成器共享平台。开发者可以在平台上制作并发布代码生成器，用户可以搜索、下载、在线使用代码生成器，管理员可以集中管理所有用户和生成器。', resources: [{ name: '🎬 演武堂', url: 'https://www.codefather.cn/course/1790980795074654209?tabKey=video&contentType=video' }] },
+        { id: 'project-4', title: '项目：青藤论剑台', desc: '一个从零搭建的校园论坛社区，采用 JWT + 前后端分离 架构。支持发帖、评论、点赞、富文本编辑、头像上传、表白墙、天气展示等功能，界面清爽，开箱即用。适合部署到学校服务器，作为学生交流平台。', resources: [{ name: '🎬 演武堂', url: 'https://www.itbaima.cn/zh-CN/space/projects/project/5' }] },
+        { id: 'project-5', title: '项目：青藤演武堂', desc: '《青藤论剑台》的全面升级版！新增管理后台、违禁词过滤、帖子搜索（ElasticSearch）、AI 校园助手（Spring AI + RAG），并引入 Canal 同步、死信队列、双端路由守卫 等企业级能力。不仅“能用”，更能“好管、好搜、好问”。', resources: [{ name: '🎬 演武堂', url: 'https://www.itbaima.cn/zh-CN/space/projects/project/13' }] },
+        { id: 'project-6', title: '项目：观星台', desc: '一个在线监控服务器运行状态的网站，能够做到数据监控、智能报警、一键SSH登录快速操作等，助你一眼掌控所有主机状态。', resources: [{ name: '🎬 演武堂', url: 'https://www.itbaima.cn/zh-CN/space/projects/project/9' }] },
+        { id: 'deploy', title: '网站部署指南', desc: '代码封镜，服务登云；一令既出，万民可访', resources: [{ name: '🍎 前置知识', url: 'https://www.bilibili.com/video/BV1AT411h7RX' }, { name: '🍎 详细教程', url: 'https://www.itbaima.cn/zh-CN/space/projects/project/3' }, { name: '🍒 实战', url: 'https://www.bilibili.com/video/BV188cueMExG/' }] },
+        { id: 'javajvm', title: 'Java JVM 虚拟机', desc: '堆栈分阴阳，GC如雷劫；逃逸分析透，性能自通神', resources: [{ name: '🎬 演武堂', url: 'https://www.bilibili.com/video/BV1Er4y1r7as/' }, { name: '📖 藏经阁', url: 'https://www.itbaima.cn/zh-CN/document/g96k66kczovvbm1i' }] },
+        { id: 'java-concurrent', title: 'Java JUC 并发编程', desc: '线程如千手，锁竞似潮涌；AQS定风波，CAS无痕胜', resources: [{ name: '🎬 演武堂', url: 'https://www.bilibili.com/video/BV1JT4y1S7K8/' }, { name: '📖 藏经阁', url: 'https://www.itbaima.cn/zh-CN/document/asncyye9ya18gfar' }] },
+        { id: 'java-nio', title: 'Java NIO Netty网络编程', desc: '通道如海脉，缓冲似潮汐；多路复用术，万连一念控', resources: [{ name: '🎬 演武堂', url: 'https://www.bilibili.com/video/BV1ar4y1J7mC/' }, { name: '📖 藏经阁', url: 'https://www.itbaima.cn/zh-CN/document/eedesc445ygiqhil' },{ name: '⭐ Netty进阶', url: 'https://www.bilibili.com/video/BV1py4y1E7oA/' }] },
+        { id: 'java-design', title: 'Java 设计模式', desc: '单例守一心，工厂化万物；代理藏真身，观察知万象', resources: [{ name: '🎬 演武堂', url: 'https://www.bilibili.com/video/BV1u3411P7Na/' }, { name: '📖 藏经阁', url: 'https://www.itbaima.cn/zh-CN/document/6386mh7anqt4tzyv' },{ name: '⭐ 设计模式进阶', url: 'https://www.bilibili.com/video/BV1Np4y1z7BU/' }] },
+        { id: 'ai-test', title: 'AI测试', desc: 'Java学废了？无妨，大道三千，测开亦可飞升', resources: [{ name: '🚑 软件测试基础', url: 'https://www.bilibili.com/video/BV1Y4421Q7ej/' }, { name: '🚑 Linux系统操作', url: 'https://www.bilibili.com/video/BV11t411M7uZ/' },{ name: '🚑 MySQL数据库', url: 'https://www.bilibili.com/video/BV1M541147Cn/' },{ name: '🚑 Python编程', url: 'https://www.bilibili.com/video/BV1av411q7dT/' },{ name: '🚑 Web自动化', url: 'https://www.bilibili.com/video/BV1QJ41137gj/' },{ name: '🚑 Appium框架', url: 'https://www.bilibili.com/video/BV1B441197rZ/' },{ name: '🚑 IOS自动化', url: 'https://www.bilibili.com/video/BV1yE411r7WU/' },{ name: '🚑 AI接口测试', url: 'https://www.bilibili.com/video/BV1gfJQzYEj9/' },{ name: '🚑 接口自动化测试', url: 'https://www.bilibili.com/video/BV1Rhahz5EZm?p=2' },{ name: '🚑 性能测试', url: 'https://www.bilibili.com/video/BV1wC4y1Y7yX/' },{ name: '🚑 微信小程序自动化测试实战', url: 'https://www.bilibili.com/video/BV11J41137jE/' },{ name: '🚑 金融项目功能测试实战', url: 'https://www.bilibili.com/video/BV1EV411S7zB/' }] },
+        { id: 'middleware', title: '必学技术与中间件', desc: '面试渡劫在即，以下法门与灵器若未参透，雷劫之下，寸步难行！', resources: [{ name: '🛸 Vibe Coding', url: 'https://ai.codefather.cn/library/2010994846520700929' },{ name: '🛸 Cursor', url: 'https://www.bilibili.com/video/BV1LjC7BmE8H' },{name : '🛸 Claude Code',url: 'https://www.bilibili.com/video/BV1LJs3ziE6y'},{ name: '💥 Markdown文档', url: 'https://www.bilibili.com/video/BV1eJ4m157kC/?t=1.505467&bvid=BV1eJ4m157kC' },{name: '💥 GitHub克隆项目', url: 'https://v.douyin.com/yMrnibEXO0k/ '},{ name: '💥 开源项目分析', url: 'https://www.bilibili.com/video/BV1T7411L74W/' },{name: '💥 接口测试',url:'https://www.bilibili.com/video/BV1NN4y1G7Uc'},{name:'💥 接口文档',url:'https://apifox.com/apiskills/api-interface-documentation/'},{ name: '💥 Lombok', url: 'https://www.bilibili.com/video/BV1gb421J7ok/?bvid=BV1gb421J7ok' },{ name: '💥 Maven', url: 'https://www.bilibili.com/video/BV1ZgScYfE3r/?t=1.519387&bvid=BV1ZgScYfE3r' },{ name: '💥 Mybatis ', url: 'https://www.bilibili.com/video/BV1ME421w7Ms/?t=2.596046&bvid=BV1ME421w7Ms' },{ name: '💥 MybatisPlus', url: 'https://www.bilibili.com/video/BV1Bq4y1f7YD/' },{ name: '💥 若依框架', url: 'https://www.bilibili.com/video/BV1pf421B71v/' },{name: '💥 Python爬虫',url:'https://www.bilibili.com/video/BV1Db4y1m7Ho'}] },
+        { id: 'interview-kama', title: '八股面试', desc: '集百家问答，炼一炉真火；八股非死记，应变方为王', resources: [{name:'⭐ 入职必知必会',url: 'https://www.bilibili.com/video/BV11o4y1j7YJ?buvid=XU69B856D2754E8F39E3E04B64AB2A49F117C&mid=eq5qgqdcxe5Jy8rHhVQwCQ==&spmid=united.player-video-detail.0.0&timestamp=1770306259&up_id=400609023'},{name:'⭐ 入职常见问题',url: 'https://www.bilibili.com/video/BV1ywgezLExW?buvid=XU69B856D2754E8F39E3E04B64AB2A49F117C&mid=eq5qgqdcxe5Jy8rHhVQwCQ==&spmid=united.player-video-detail.0.0&timestamp=1770306241&up_id=400609023'},{ name: '📚 卡码笔记', url: 'https://notes.kamacoder.com/' },{ name: '📚 小林coding', url: 'https://xiaolincoding.com/' },{ name: '📚 面试鸭', url: 'https://www.mianshiya.com/banks' }] },
+        { id: 'interview-xiaolin', title: '技术扩展', desc: '顶级神通已修，却只领三枚下品灵石？再不涨俸，我就带着我的本命法宝（简历），去隔壁合欢宗（大厂）双修了！', resources: [{ name: '🌕 算法', url: 'https://space.bilibili.com/8888480/lists/3509640?type=series' },{ name: '🌕 日志框架', url: 'https://www.bilibili.com/video/BV1434y1o73n/' },{ name: '🌕 Kafka', url: 'https://www.bilibili.com/video/BV1vr4y1677k/' },{ name: '🌕 k8s', url: 'https://www.bilibili.com/video/BV1w4411y7Go/' },{ name: '🌕 微信支付&支付宝支付', url: 'https://www.bilibili.com/video/BV1US4y1D77m/' },{ name: '🌕 Spring底层原理', url: 'https://www.bilibili.com/video/BV1P44y1N7QG/' },{ name: '🌕 Dubbo', url: 'https://www.bilibili.com/video/BV1VE411q7dX/' },{ name: '🌕 ShardingSphere', url: 'https://www.bilibili.com/video/BV1ta411g7Jf/' },{ name: '🌕 Zookeeper', url: 'https://www.bilibili.com/video/BV1M741137qY/' },{ name: '🌕 Nginx', url: 'https://www.bilibili.com/video/BV1yS4y1N76R/' },{ name: '🌕 ElasticSearch', url: 'https://www.bilibili.com/video/BV17a4y1x7zq/' },{name:'✈️ 黑马AI智能应用开发',url: 'https://www.bilibili.com/video/BV1x12YB9Erp/'},{name: '✈️ 尚硅谷Java全栈', url: 'https://www.bilibili.com/video/BV1PY411e7J6/'}] }
+    ];
+
+    let savedData = JSON.parse(localStorage.getItem('javaStudyFinal') || '{}');
+    if (!savedData.progress) {
+        const oldProgress = JSON.parse(localStorage.getItem('javaStudyProgress') || '{}');
+        savedData = { progress: oldProgress, calendar: [], notes: [] };
+        localStorage.setItem('javaStudyFinal', JSON.stringify(savedData));
+    } else {
+        if (!savedData.progress) savedData.progress = {};
+        if (!savedData.calendar) savedData.calendar = [];
+        if (!savedData.notes) savedData.notes = [];
+    }
+
+    function init() {
+        renderTasks();
+        updateProgress();
+        renderNotes();
+        generateSuggestion();
+        setTimeout(() => { document.getElementById('edict').classList.add('open'); }, 100);
+    }
+
+    function renderTasks() {
+        const container = document.getElementById('task-list');
+        container.innerHTML = studyPlan.map((task, index) => {
+            const isChecked = savedData.progress[task.id] ? 'checked' : '';
+            const resourcesHtml = task.resources.map(res => {
+                const className = res.name.includes('演武堂') ? 'bilibili' : 'resource';
+                return `<a href="${res.url}" target="_blank" class="task-btn ${className}">${res.name}</a>`;
+            }).join('');
+
+            // 瀑布流动画延迟
+            const delayStyle = `style="animation-delay: ${index * 0.01}s"`;
+
+            return `
+            <input type="checkbox" id="task-${task.id}" class="task-checkbox" ${isChecked} onchange="toggleTask('${task.id}')">
+            <label for="task-${task.id}" class="task-card" ${delayStyle}>
+                <div class="task-title">${task.title}</div>
+                <div class="task-desc">${task.desc}</div>
+                <div class="task-actions">${resourcesHtml}</div>
+                <div class="check-icon">✓</div>
+            </label>
+            `;
+        }).join('');
+    }
+
+    function toggleTask(taskId) {
+        if (savedData.progress[taskId]) {
+            delete savedData.progress[taskId];
+        } else {
+            savedData.progress[taskId] = true;
+            const today = new Date().toDateString();
+            if (!savedData.calendar.includes(today)) savedData.calendar.push(today);
+        }
+        saveData();
+        updateProgress();
+        generateSuggestion();
+    }
+
+    function updateProgress() {
+        const completed = Object.keys(savedData.progress).length;
+        const total = studyPlan.length;
+        const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+        document.getElementById('progress-percent').innerText = percent;
+        document.getElementById('progress-bar').style.width = percent + '%';
+    }
+
+    function generateSuggestion() {
+        const completed = Object.keys(savedData.progress).length;
+        let suggestion = '';
+
+        if (completed === 0) suggestion = "🌱 凡胎未脱，灵根未显。道友，是时候从 JavaSE 筑基开始，引气入体了！";
+        else if (completed === 1) suggestion = "✨ 已通 JavaSE 基础真经，灵力初成！可习新法（新特性），凝练道心。";
+        else if (completed === 2) suggestion = "💧 掌握 Lambda 与 Stream，法术行云流水。下一步，当开凿灵泉（MySQL）滋养根基！";
+        else if (completed === 3) suggestion = "🪨 灵泉（MySQL）已通，数据如江河奔涌。可筑 Web 阵法，连接凡尘与仙界！";
+        else if (completed === 4) suggestion = "🌐 JavaWeb 阵成！Servlet 如符咒，JSP 似卷轴，可召用户入阵！";
+        else if (completed === 5) suggestion = "🏯 Spring 宗门初立！IoC 如天道运转，万物归其位，秩序自生！";
+        else if (completed === 6) suggestion = "🕊️ SpringMVC 心法圆满，请求如飞鸟归林，响应似清风拂面！";
+        else if (completed === 7) suggestion = "🛡️ SpringSecurity 结界已布！邪魔（未授权者）休想踏入宗门半步！";
+        else if (completed === 8) suggestion = "⚡ SpringBoot 神通加持！宗门自启，省去万般繁琐祭礼，大道至简！";
+        else if (completed === 9) suggestion = "🔥 Redis 真火炼成！缓存如瞬移之术，万般查询一念即达！";
+        else if (completed === 10) suggestion = "⛰️ 登临 Linux 仙山！掌握 Shell 口诀，可御服务器于千里之外！";
+        else if (completed === 11) suggestion = "📜 Git 天书已悟！代码如时光长河，可溯流而上，亦可分身并行（分支）！";
+        else if (completed === 12) suggestion = "☁️ SpringCloud 云阵大成！微服务如群星列阵，各司其职，共御天劫！";
+        else if (completed === 13) suggestion = "🐳 Docker 神器炼成！一容器一世界，部署如缩地成寸，万境随行！";
+        else if (completed === 14) suggestion = "🤖 初窥 AI 天机！智能如天道意志，未来已来，道友当顺势而为！";
+        else if (completed === 15) suggestion = "🎨 前端神通初显！HTML 为骨，CSS 为衣，JS 为魂，三才合一！";
+        else if (completed === 16) suggestion = "✍️ 博客宗门落成！道友可于此著书立说，传道授业，扬名修真界！";
+        else if (completed === 17) suggestion = "🍱 外卖仙阁开张！高并发如千人抢购灵丹，系统稳如泰山！";
+        else if (completed === 18) suggestion = "🧙 代码生成器炼成！一符成万法，免去重复苦修，效率倍增！";
+        else if (completed === 19) suggestion = "🏫 校园论坛初建！道友已可聚同门论道，切磋技艺（项目1）！";
+        else if (completed === 20) suggestion = "📚 论坛再升！权限、消息、互动皆备，宗门日渐昌盛（项目2）！";
+        else if (completed === 21) suggestion = "👁️ 运维天眼已开！Prometheus 与 Grafana 如千里眼顺风耳，系统尽在掌控！";
+        else if (completed === 22) suggestion = "🏡 个人仙府（网站）落成！域名即道号，全球修士皆可来访！";
+        else if (completed === 23) suggestion = "🌀 深入 JVM 玄境！内存如丹田，GC 似吐纳，掌控生死轮回！";
+        else if (completed === 24) suggestion = "🧵 JUC 秘术大成！多线程如分身千万，协同无间，战力滔天！";
+        else if (completed === 25) suggestion = "⚡ Netty 雷法通神！异步非阻塞如御雷飞行，百万连接弹指可破！";
+        else if (completed === 26) suggestion = "☯️ 设计模式悟道！单例如独尊，工厂化万物，策略定乾坤！";
+        else if (completed === 27) suggestion = "🧪 测试心法圆满！JUnit 如照妖镜，Mock 如幻境，Bug无所遁形！";
+        else if (completed === 28) suggestion = "🧰 必学技术集齐！工具链如本命法宝，出鞘即可斩妖除魔！";
+        else if (completed === 29) suggestion = "📖 八股真经背熟！面试雷劫将至，此乃渡劫口诀，一字不可错！";
+        else if (completed >= 30) suggestion = "🌌 技术扩展无边！道友已超脱凡俗，可自创功法，开宗立派，飞升大厂仙门！";
+        else suggestion = "🌈 天机未显，道友且行且悟。";
+
+        document.getElementById('suggestionContent').textContent = suggestion;
+    }
+
+    function openNoteModal() {
+        document.getElementById('noteModal').classList.add('active');
+        document.getElementById('noteTopic').value = '';
+        document.getElementById('noteContent').value = '';
+    }
+
+    function closeNoteModal() { document.getElementById('noteModal').classList.remove('active'); }
+
+    function saveNote() {
+        const topic = document.getElementById('noteTopic').value.trim();
+        const content = document.getElementById('noteContent').value.trim();
+        if (!topic || !content) { alert('✍️ 道友，感悟岂能无字？请填写完整！'); return; }
+        savedData.notes.unshift({ id: Date.now(), topic: topic, content: content, date: new Date().toISOString() });
+        saveData(); renderNotes(); closeNoteModal();
+    }
+
+    function deleteNote(id) {
+        if (confirm('🗑️ 确定要抹去这段记忆吗？')) {
+            savedData.notes = savedData.notes.filter(note => note.id !== id);
+            saveData(); renderNotes();
+        }
+    }
+
+    function renderNotes() {
+        const container = document.getElementById('notesList');
+        if (savedData.notes.length === 0) {
+            container.innerHTML = `<div style="text-align: center; color: var(--text-sub); padding: 20px;">🍂 暂无手札，快去记录你的修仙感悟吧！</div>`;
+            return;
+        }
+        container.innerHTML = savedData.notes.map(note => {
+            const date = new Date(note.date).toLocaleDateString('zh-CN');
+            return `<div class="note-item"><div class="note-header"><div class="note-topic">${note.topic}</div><div class="note-date">${date}</div></div><div class="note-content">${note.content}</div><div class="note-delete" onclick="deleteNote(${note.id})">🗑️ 遗忘</div></div>`;
+        }).join('');
+    }
+
+    function resetProgress() {
+        if (confirm('⚠️ 警告：确定要自废武功，重头再来吗？')) {
+            // 1. 清空数据
+            savedData = { progress: {}, calendar: [], notes: [] };
+            saveData();
+
+            // 2. 清除旧版缓存
+            localStorage.removeItem('javaStudyProgress');
+
+            // 3. 原地更新UI (不刷新页面)
+            document.querySelectorAll('.task-checkbox').forEach(cb => { cb.checked = false; });
+            updateProgress();
+            generateSuggestion();
+            renderNotes();
+        }
+    }
+
+    function saveData() { localStorage.setItem('javaStudyFinal', JSON.stringify(savedData)); }
+
+    window.onload = init;
+</script>
+
+</body>
+</html>
